@@ -81,7 +81,14 @@ var request_extensions = {
     if(scope.template){
       var template_path = picard.env.root + picard.env.views + '/' + scope.template
       haml.render(scope, template_path, function(body){
-        req.send_data(status, headers, body, encoding)
+        if(scope.layout){
+          var layout_path = picard.env.root + picard.env.views + '/' + scope.layout
+          haml.render({body: body}, layout_path, function(body){
+            req.send_data(status, headers, body, encoding)
+          })
+        } else {
+          req.send_data(status, headers, body, encoding)
+        }
       })
     } else {
       req.send_data(status, headers, body, encoding)

@@ -32,6 +32,7 @@ get('/json', function(){
 get('/advanced_haml', function(){
   return { 
     template: 'advanced.haml',
+    layout: 'layout.haml',
     commands: commands // defined above
   }
 })
