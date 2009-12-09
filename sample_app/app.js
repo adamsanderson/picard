@@ -6,7 +6,7 @@ get('/', function(){
 
 get('/haml', function(){
   return {
-    template: 'index.haml', 
+    template: 'index',
     print_date: function () {
       return (new Date()).toDateString();
     },
@@ -31,13 +31,22 @@ get('/json', function(){
 
 get('/advanced_haml', function(){
   return { 
-    template: 'advanced.haml',
-    layout: 'layout.haml',
+    template: 'advanced',
     commands: commands // defined above
   }
 })
 
-get('/redirect/?', function(request){ // the '?' at the end of the route makes the trailing slash optional
+get('/partial', function(){
+  return { 
+    template: 'partial_test', 
+    layout: 'application',
+    commands: commands
+  }
+})
+
+get('/redirect/?', function(request){
+  // the '?' at the end of the route 
+  // makes the trailing slash optional
   return request.redirect('/haml')
 })
 
@@ -45,7 +54,9 @@ post('/order', function(){
   return { text: 'Tea, Earl Grey, Hot' }
 })
 
-// simulate form params with `curl -d "foo=bar&baz=bat" http://localhost:9900/with_params`
+// simulate form params with:
+// `curl -d "foo=bar&baz=bat" http://localhost:9900/with_params`
+
 post('/with_params', function(params){
   return { text: '<h1>' + params.foo + ' ' + params.baz + '</h1>' }
 })
@@ -54,8 +65,7 @@ put('/weapon/:id', function(params){
   return { text: '<p>Phaser with id #' + params.id + ' set to stun</p>' }
 })
  
-del('/fire/:number', function(params){
-  
+del('/fire/:number', function(params){  
   var text = '<p>Borg cube destroyed using ' + params.number + ' photon torpedoes</p>'
   
   if (  Number(params.number) > 12 )

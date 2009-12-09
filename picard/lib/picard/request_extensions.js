@@ -14,6 +14,7 @@ var request_extensions = {
   },
   
   extract_route_params: function(route, match_data){
+
     if( match_data == null ){ return } else { match_data.shift() }
     this.captures = []
     
@@ -52,10 +53,10 @@ var request_extensions = {
     
   },
   
-  send_data: function(status, headers, body, encoding){
-    headers.push([ 'Content-Length', body.length ])
-    this.response.sendHeader(status, headers)
-    this.response.sendBody(body, encoding)
+  send_data: function(scope){
+    scope.headers.push([ 'Content-Length', scope.body.length ])
+    this.response.sendHeader(scope.status, scope.headers)
+    this.response.sendBody(scope.body, scope.encoding)
     this.response.finish()
   },
   
@@ -66,35 +67,21 @@ var request_extensions = {
       scope = { status: 404, body: "<h1> 404 Not Found </h1>" }
     
     var req = this
-    var status = scope.status || 200
-    var headers = scope.headers || []
-    var body = scope.text || scope.body || ''
-    var encoding = scope.encoding || 'ascii'
+    scope.status = scope.status || 200
+    scope.headers = scope.headers || []
+    scope.body = scope.text || scope.body || ''
+    scope.encoding = scope.encoding || 'ascii'
     
     if(typeof(scope) == 'string')
       body = scope
     
-    headers.push([ 'Server', 'Picard v0.1 "Prime Directive"' ])
-    headers.push([ 'Content-Type', scope.type || 'text/html' ])
-    headers = req.set_cookies(headers)
+    scope.headers.push([ 'Server', 'Picard v0.1 "Prime Directive"' ])
+    scope.headers.push([ 'Content-Type', scope.type || 'text/html' ])
+    scope.headers = req.set_cookies(scope.headers)
+
+    req.build_document(scope)
     
-    if(scope.template){
-      var template_path = picard.env.root + picard.env.views + '/' + scope.template
-      haml.render(scope, template_path, function(body){
-        if(scope.layout){
-          var layout_path = picard.env.root + picard.env.views + '/' + scope.layout
-          haml.render({body: body}, layout_path, function(body){
-            req.send_data(status, headers, body, encoding)
-          })
-        } else {
-          req.send_data(status, headers, body, encoding)
-        }
-      })
-    } else {
-      req.send_data(status, headers, body, encoding)
-    }
-    
-    sys.puts((this._method || this.method).toUpperCase() + ' ' + this.uri.path + ' ' + status)
+    sys.puts((this._method || this.method).toUpperCase() + ' ' + this.uri.path + ' ' + scope.status)
     
     if(picard.env.mode == 'development')
       sys.puts(sys.inspect(this) + '\n') // request params logging
@@ -161,6 +148,41 @@ var request_extensions = {
       status: 302,
       headers: [[ 'Location', location ]], 
       body: '<a href="'+ location + '">' + location + '</a>' 
+    }
+  },
+  
+  build_document: function(scope){
+    var basepath = picard.env.root + picard.env.views + '/'
+    var partial = scope.body.match(/\=\=partial\('(.*)'\)/)
+    var req = this
+    var filename
+    
+    if ( partial && partial[1] ){ // template w/ partial
+      filename = basepath + partial[1] + '.haml'
+      posix.cat(filename).addCallback(function(body){
+        var partial_content = haml.render(scope, body)
+        scope.body = scope.body.replace(partial[0], partial_content)
+        req.build_document(scope)
+      })
+    } else if ( scope.template ) { // first run w/ template
+      filename = basepath + scope.template + '.haml'
+      posix.cat(filename).addCallback(function(body){
+        scope.body = haml.render(scope, body)
+        delete scope.template
+        req.build_document(scope)
+      })
+    } else if ( scope.layout ){ // layout first pass, after template + partials
+      filename = basepath + scope.layout + '.haml'
+      posix.cat(filename).addCallback(function(layout){
+        var layout_content = haml.render(scope, layout)
+        var yield = layout_content.match(/\=\=yield\(\)/)      
+        if( yield )
+          scope.body = layout_content.replace(yield, scope.body)
+        delete scope.layout
+        req.build_document(scope)
+      })
+    } else { // document done
+      req.send_data(scope)
     }
   }
   
