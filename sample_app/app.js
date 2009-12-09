@@ -44,6 +44,14 @@ get('/partial', function(){
   }
 })
 
+get('/partial_failure', function(){
+  return { 
+    template: 'partial_failure', 
+    layout: 'application',
+    commands: commands
+  }
+})
+
 get('/redirect/?', function(request){
   // the '?' at the end of the route 
   // makes the trailing slash optional

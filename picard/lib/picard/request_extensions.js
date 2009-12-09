@@ -163,14 +163,14 @@ var request_extensions = {
         var partial_content = haml.render(scope, body)
         scope.body = scope.body.replace(partial[0], partial_content)
         req.build_document(scope)
-      })
+      }).addErrback(function(ex){ req.handle_exception(ex); })
     } else if ( scope.template ) { // first run w/ template
       filename = basepath + scope.template + '.haml'
       posix.cat(filename).addCallback(function(body){
         scope.body = haml.render(scope, body)
         delete scope.template
         req.build_document(scope)
-      })
+      }).addErrback(function(ex){ req.handle_exception(ex); })
     } else if ( scope.layout ){ // layout first pass, after template + partials
       filename = basepath + scope.layout + '.haml'
       posix.cat(filename).addCallback(function(layout){
@@ -180,7 +180,7 @@ var request_extensions = {
           scope.body = layout_content.replace(yield, scope.body)
         delete scope.layout
         req.build_document(scope)
-      })
+      }).addErrback(function(ex){ req.handle_exception(ex); })
     } else { // document done
       req.send_data(scope)
     }

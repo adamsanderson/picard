@@ -49,11 +49,6 @@ describe 'Picard specific tests' do
       @res.body_str.should include("<li>Make it so</li>")
       @res.body_str.should include("<li>You have the bridge, Number One</li>")
     end
-    
-    it 'should render a layout' do
-      @res.body_str.should include("Picard Header")
-      @res.body_str.should include("This is the footer")
-    end
   end
   
   describe 'partials and layouts' do
